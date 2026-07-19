@@ -10,6 +10,6 @@ product_bp.route("/<int:product_id>", methods=["GET"])(ProductController.get_pro
 product_bp.route("/<int:product_id>", methods=["PUT"])(ProductController.update_product)
 product_bp.route("/<int:product_id>", methods=["DELETE"])(ProductController.delete_product)
 product_bp.route("/<int:product_id>/stock-history", methods=["GET"])(ProductController.get_stock_history)
-
+product_bp.route("/<int:product_id>", methods=["PATCH"])(ProductController.update_product)
 
 

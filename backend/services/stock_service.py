@@ -6,36 +6,50 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class StockService:
     @staticmethod
+    def _create_stock_log(product, stock_level_before, change, reason=None):
+        log = StockLog(
+            product_id=product.id,
+            product_name=product.name,
+            change=change,
+            stock_level_before=stock_level_before,
+            stock_level_after=product.stock_level,
+            reason=reason,
+        )
+        db.session.add(log)
+
+    @staticmethod
     def adjust_stock(product_id, amount, reason=None):
         product = Product.query.with_for_update().filter_by(id=product_id).first()
         if not product:
             return None, "Product not found"
 
-        new_stock = product.stock_level + amount
+        stock_level_before = product.stock_level
+        new_stock = stock_level_before + amount
         if new_stock < 0:
             return None, "Insufficient stock"
 
         product.stock_level = new_stock
-        log = StockLog(product_id=product.id, change=amount, reason=reason)
-        db.session.add(log)
+        StockService._create_stock_log(product, stock_level_before, amount, reason)
         db.session.commit()
         return product, None
 
     @staticmethod
     def increase_stock(product_id, amount, reason=None):
         try:
-            with db.session.begin():
-                product = (
-                    db.session.query(Product)
-                    .with_for_update()
-                    .filter_by(id=product_id)
-                    .first()
-                )
-                if not product:
-                    return None, "Product not found"
+            product = (
+                db.session.query(Product)
+                .with_for_update()
+                .filter_by(id=product_id)
+                .first()
+            )
+            if not product:
+                return None, "Product not found"
 
-                product.stock_level += int(amount)
-                db.session.add(product)
+            stock_level_before = product.stock_level
+            product.stock_level += int(amount)
+            db.session.add(product)
+            StockService._create_stock_log(product, stock_level_before, int(amount), reason)
+            db.session.commit()
 
             return product, None
         except SQLAlchemyError as e:
@@ -45,22 +59,24 @@ class StockService:
     @staticmethod
     def decrease_stock(product_id, amount, reason=None):
         try:
-            with db.session.begin():
-                product = (
-                    db.session.query(Product)
-                    .with_for_update()
-                    .filter_by(id=product_id)
-                    .first()
-                )
-                if not product:
-                    return None, "Product not found"
+            product = (
+                db.session.query(Product)
+                .with_for_update()
+                .filter_by(id=product_id)
+                .first()
+            )
+            if not product:
+                return None, "Product not found"
 
-                amount = int(amount)
-                if product.stock_level < amount:
-                    return None, "Insufficient stock"
+            amount = int(amount)
+            stock_level_before = product.stock_level
+            if stock_level_before < amount:
+                return None, "Insufficient stock"
 
-                product.stock_level -= amount
-                db.session.add(product)
+            product.stock_level -= amount
+            db.session.add(product)
+            StockService._create_stock_log(product, stock_level_before, -amount, reason)
+            db.session.commit()
 
             return product, None
         except SQLAlchemyError as e:
