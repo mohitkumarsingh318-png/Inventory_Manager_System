@@ -1,0 +1,141 @@
+{
+  "info": {
+    "name": "Inventory Manager API",
+    "description": "Collection for the Flask inventory manager backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/",
+          "host": ["{{base_url}}"],
+          "path": [""]
+        }
+      }
+    },
+    {
+      "name": "Create Product",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Widget\",\n  \"description\": \"Basic widget\",\n  \"price\": 9.99,\n  \"stock_level\": 10\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/products/",
+          "host": ["{{base_url}}"],
+          "path": ["products", ""]
+        }
+      }
+    },
+    {
+      "name": "List Products",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/products/",
+          "host": ["{{base_url}}"],
+          "path": ["products", ""]
+        }
+      }
+    },
+    {
+      "name": "Get Product",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/products/{{product_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["products", "{{product_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Product",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Widget\",\n  \"price\": 12.5,\n  \"stock_level\": 8\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/products/{{product_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["products", "{{product_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Increase Stock",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 5,\n  \"reason\": \"restock\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/stock/increase/{{product_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["stock", "increase", "{{product_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Decrease Stock",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 2,\n  \"reason\": \"sale\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/stock/decrease/{{product_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["stock", "decrease", "{{product_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Stock History",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/products/{{product_id}}/stock-history",
+          "host": ["{{base_url}}"],
+          "path": ["products", "{{product_id}}", "stock-history"]
+        }
+      }
+    }
+  ]
+}

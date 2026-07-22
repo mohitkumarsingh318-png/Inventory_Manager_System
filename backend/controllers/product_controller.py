@@ -13,7 +13,7 @@ class ProductController:
         try:
             product = ProductService.create_product(data)
         except ValueError as exc:
-            return jsonify({"error": str(exc)}), 409
+            return jsonify({"error": str(exc)}), 400
 
         return jsonify(product.to_dict()), 201
 
@@ -29,19 +29,21 @@ class ProductController:
             return jsonify({"error": "Product not found"}), 404
         return jsonify(product.to_dict()), 200
 
-  
     @staticmethod
     def update_product(product_id):
         data = request.get_json(force=True, silent=True) or {}
         if not data:
             return jsonify({"error": "No update data provided"}), 400
 
-        product = ProductService.update_product(product_id, data)
+        try:
+            product = ProductService.update_product(product_id, data)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+
         if not product:
             return jsonify({"error": "Product not found"}), 404
 
         return jsonify(product.to_dict()), 200
-
 
     @staticmethod
     def delete_product(product_id):

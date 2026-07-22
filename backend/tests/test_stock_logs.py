@@ -30,7 +30,7 @@ def test_stock_log_records_before_and_after_levels():
 
         StockService.increase_stock(product.id, 2, reason="restock")
 
-        log = StockLog.query.order_by(StockLog.id.desc()).first()
+        log = StockLog.query.order_by(StockLog.Sno.desc()).first()
 
         assert log is not None
         assert log.product_name == "Widget"

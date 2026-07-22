@@ -18,22 +18,6 @@ class StockService:
         db.session.add(log)
 
     @staticmethod
-    def adjust_stock(product_id, amount, reason=None):
-        product = Product.query.with_for_update().filter_by(id=product_id).first()
-        if not product:
-            return None, "Product not found"
-
-        stock_level_before = product.stock_level
-        new_stock = stock_level_before + amount
-        if new_stock < 0:
-            return None, "Insufficient stock"
-
-        product.stock_level = new_stock
-        StockService._create_stock_log(product, stock_level_before, amount, reason)
-        db.session.commit()
-        return product, None
-
-    @staticmethod
     def increase_stock(product_id, amount, reason=None):
         try:
             product = (

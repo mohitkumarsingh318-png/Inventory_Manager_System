@@ -6,7 +6,8 @@ A Flask-based inventory management backend for creating products, updating stock
 
 - Create, read, update, and delete products
 - Increase or decrease stock with validation
-- Prevent negative stock values
+- Prevent negative stock values and negative prices
+- Require stock changes through dedicated stock endpoints so updates use locking and history logging
 - Record stock history for each product
 - Use row-level locking to reduce concurrent update conflicts
 
@@ -98,6 +99,8 @@ A healthy response returns JSON with a status of ok.
 - POST /stock/increase/<product_id> — increase stock
 - POST /stock/decrease/<product_id> — decrease stock
 
+> Stock changes must be performed through these endpoints so stock history is recorded and row-level locking is applied.
+
 ## Request bodies
 
 ### Create product
@@ -116,10 +119,11 @@ A healthy response returns JSON with a status of ok.
 ```json
 {
   "name": "Updated Widget",
-  "price": 12.5,
-  "stock_level": 8
+  "price": 12.5
 }
 ```
+
+> Note: `stock_level` cannot be updated through this endpoint. Use the stock adjustment endpoints below instead.
 
 ### Stock adjustment
 

@@ -34,6 +34,17 @@ with app.app_context():
     inspector = db.inspect(db.engine)
     stock_log_columns = {column["name"] for column in inspector.get_columns("stock_logs")}
 
+    if "id" in stock_log_columns and "Sno" not in stock_log_columns:
+        engine_name = db.engine.url.get_backend_name()
+        if engine_name == "mysql":
+            db.session.execute(text(
+                "ALTER TABLE stock_logs CHANGE COLUMN id Sno INT NOT NULL AUTO_INCREMENT"
+            ))
+        else:
+            db.session.execute(text("ALTER TABLE stock_logs RENAME COLUMN id TO Sno"))
+        stock_log_columns.remove("id")
+        stock_log_columns.add("Sno")
+
     if "product_name" not in stock_log_columns:
         db.session.execute(text("ALTER TABLE stock_logs ADD COLUMN product_name VARCHAR(128) NOT NULL DEFAULT ''"))
     if "stock_level_before" not in stock_log_columns:
