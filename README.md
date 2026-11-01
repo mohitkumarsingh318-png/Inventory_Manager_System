@@ -67,6 +67,10 @@ npm run dev
 
 Open the local URL printed by Vite (usually http://localhost:5173). During local development, Vite proxies `/products` and `/stock` requests to `http://127.0.0.1:5000`. To use another API origin, set `VITE_API_BASE_URL` in `frontend/.env.local`.
 
+### Deploying the frontend to Netlify
+
+The repository root includes `netlify.toml`, which configures Netlify to build the `frontend/` app and publish its `dist/` directory. Connect the GitHub repository to Netlify and deploy the `main` branch. In the Netlify site settings, set the `VITE_API_BASE_URL` environment variable to the public base URL of the deployed Flask API, then trigger a new deploy. The Flask API must be hosted separately and allow requests from the Netlify site.
+
 You can verify the server by opening http://127.0.0.1:5000/ or running:
 
 ```powershell
