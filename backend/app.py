@@ -1,4 +1,7 @@
+import os
+
 from flask import Flask, jsonify
+from flask_cors import CORS
 from sqlalchemy import text
 
 from config import Config
@@ -9,6 +12,7 @@ from routes.stock_routes import stock_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
+CORS(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
 
 db.init_app(app)
 
@@ -55,4 +59,9 @@ with app.app_context():
     db.session.commit()
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1",port=5000,debug=True,threaded= True)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "5000")),
+        debug=os.getenv("FLASK_DEBUG", "false").lower() == "true",
+        threaded=True,
+    )

@@ -71,6 +71,16 @@ Open the local URL printed by Vite (usually http://localhost:5173). During local
 
 The repository root includes `netlify.toml`, which configures Netlify to build the `frontend/` app and publish its `dist/` directory. Connect the GitHub repository to Netlify and deploy the `main` branch. In the Netlify site settings, set the `VITE_API_BASE_URL` environment variable to the public base URL of the deployed Flask API, then trigger a new deploy. The Flask API must be hosted separately and allow requests from the Netlify site.
 
+### Deploying the backend to Railway
+
+1. Create a Railway project from this GitHub repository and set the service's **Root Directory** to `/backend`.
+2. Add a Railway MySQL database service.
+3. Add a public domain to the backend service. Its `Procfile` starts Gunicorn on Railway's assigned port.
+4. Set `CORS_ORIGINS` on the backend service to `https://pmod.netlify.app` (add other trusted frontend origins as comma-separated URLs if needed). Railway's MySQL `MYSQL*` variables or `MYSQL_URL` are detected automatically; alternatively, configure `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, and `DB_NAME`.
+5. In Netlify, set `VITE_API_BASE_URL` to the Railway backend's public URL, then redeploy the frontend.
+
+The backend's `/` health endpoint should return `{"status":"ok"}` after deployment.
+
 You can verify the server by opening http://127.0.0.1:5000/ or running:
 
 ```powershell
