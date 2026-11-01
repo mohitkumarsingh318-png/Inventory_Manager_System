@@ -6,7 +6,9 @@ from services.product_service import ProductService
 class ProductController:
     @staticmethod
     def create_product():
-        data = request.get_json() or {}
+        data = request.get_json(force=True, silent=True)
+        if not isinstance(data, dict):
+            data = {}
         if not data.get("name"):
             return jsonify({"error": "Product name is required"}), 400
 
@@ -31,7 +33,9 @@ class ProductController:
 
     @staticmethod
     def update_product(product_id):
-        data = request.get_json(force=True, silent=True) or {}
+        data = request.get_json(force=True, silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "No update data provided"}), 400
         if not data:
             return jsonify({"error": "No update data provided"}), 400
 

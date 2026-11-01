@@ -55,6 +55,18 @@ python app.py
 
 The API runs at http://127.0.0.1:5000.
 
+## React frontend
+
+The React dashboard lives in `frontend/`. Start the Flask API first, then run the frontend in a separate terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite (usually http://localhost:5173). During local development, Vite proxies `/products` and `/stock` requests to `http://127.0.0.1:5000`. To use another API origin, set `VITE_API_BASE_URL` in `frontend/.env.local`.
+
 You can verify the server by opening http://127.0.0.1:5000/ or running:
 
 ```powershell

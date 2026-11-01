@@ -68,6 +68,9 @@ class StockService:
             return None, str(e)
     @staticmethod
     def get_stock_history(product_id, limit=100):
+        if Product.query.filter_by(id=product_id).first() is None:
+            return None
+
         logs = (
             StockLog.query.filter_by(product_id=product_id)
             .order_by(StockLog.created_at.desc())

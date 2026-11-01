@@ -6,7 +6,9 @@ from services.stock_service import StockService
 class StockController:
     @staticmethod
     def _get_amount():
-        data = request.get_json(force=True, silent=True) or {}
+        data = request.get_json(force=True, silent=True)
+        if not isinstance(data, dict):
+            data = {}
         amount = data.get("amount")
 
         if amount is None:

@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 
 from database.db import db
 from models.product import Product
+from models.stock_log import StockLog
 
 
 class ProductService:
@@ -63,6 +64,20 @@ class ProductService:
     def get_all_products():
         statement = select(Product).order_by(Product.id.asc())
         return db.session.scalars(statement).all()
+
+    @staticmethod
+    def get_stock_history(product_id, limit=100):
+        if db.session.get(Product, product_id) is None:
+            return None
+
+        logs = (
+            db.session.query(StockLog)
+            .filter_by(product_id=product_id)
+            .order_by(StockLog.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return logs
 
     @staticmethod
     def update_product(product_id, data):
