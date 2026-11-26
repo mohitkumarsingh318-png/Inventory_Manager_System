@@ -213,3 +213,14 @@ td { padding: 10px 12px; border-top: 1px solid #f0f1f4; color: #666d7a; font-siz
   .modal { padding: 18px; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+.demo-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fff7e0;
+  border: 1px solid #f1d58a;
+  color: #6b4e00;
+  font-size: 0.875rem;
+}
+.demo-banner code { font-weight: 600; }

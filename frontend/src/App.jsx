@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { demoRequest } from './demoApi'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+// On deployed builds without an API URL, fall back to browser-stored sample data.
+const DEMO_MODE = import.meta.env.PROD && !API_BASE
 
 async function request(path, options = {}) {
+  if (DEMO_MODE) return demoRequest(path, options)
   const response = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
@@ -248,6 +252,11 @@ function App() {
       </aside>
 
       <main className="main-content">
+        {DEMO_MODE && (
+          <div className="demo-banner" role="status">
+            Demo mode: showing sample data saved in your browser. Set <code>VITE_API_BASE_URL</code> to connect the live Flask API.
+          </div>
+        )}
         <header className="topbar">
           <button className="mobile-menu" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><Icon name="menu" /></button>
           <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-separator">/</span><strong>{activeView === 'overview' ? 'Overview' : activeView === 'products' ? 'Products' : 'Stock history'}</strong></div>
