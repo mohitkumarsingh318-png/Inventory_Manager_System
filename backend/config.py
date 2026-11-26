@@ -26,6 +26,8 @@ def _database_url():
 class Config:
     SQLALCHEMY_DATABASE_URI = _database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key-in-production")
+    AUTH_TOKEN_MAX_AGE = int(os.getenv("AUTH_TOKEN_MAX_AGE", "604800"))
     CORS_ORIGINS = [
         origin.strip()
         for origin in os.getenv(

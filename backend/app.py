@@ -9,12 +9,22 @@ from database.db import db
 
 from routes.product_routes import product_bp
 from routes.stock_routes import stock_bp
+from routes.auth_routes import auth_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
 CORS(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
 
 db.init_app(app)
+
+@app.before_request
+def require_auth_for_inventory():
+    from flask import request
+    from controllers.auth_controller import get_current_user
+
+    if request.path.startswith("/products") or request.path.startswith("/stock"):
+        if not get_current_user():
+            return jsonify({"error": "Authentication required"}), 401
 
 @app.route("/", methods=["GET"])
 def health_check():
@@ -31,6 +41,7 @@ def health_check():
 
 app.register_blueprint(product_bp)
 app.register_blueprint(stock_bp)
+app.register_blueprint(auth_bp)
 
 with app.app_context():
     db.create_all()

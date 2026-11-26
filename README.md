@@ -1,6 +1,6 @@
-# Inventory Manager
+# Rupesh's Stockroom
 
-A Flask-based inventory management backend for creating products, updating stock, and tracking stock history. The app uses Flask-SQLAlchemy with MySQL and exposes REST endpoints for product management and stock adjustments.
+Rupesh's Stockroom is an inventory management app for managing products, updating stock, and tracking stock history. The React frontend connects to a Flask REST API backed by Flask-SQLAlchemy and MySQL. Users sign in with an account before accessing inventory endpoints.
 
 ## What the app does
 
@@ -10,6 +10,9 @@ A Flask-based inventory management backend for creating products, updating stock
 - Require stock changes through dedicated stock endpoints so updates use locking and history logging
 - Record stock history for each product
 - Use row-level locking to reduce concurrent update conflicts
+- Create an account and sign in with hashed passwords and expiring bearer tokens
+
+> Inventory records are shared among authenticated accounts; products are not currently isolated by user.
 
 ## Tech stack
 
@@ -44,7 +47,10 @@ DB_PASSWORD=your_password
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=inventory_manager
+SECRET_KEY=replace-with-a-long-random-secret
 ```
+
+`SECRET_KEY` is used to sign authentication tokens. Set a unique, unpredictable value in every deployed environment. `AUTH_TOKEN_MAX_AGE` optionally sets token lifetime in seconds (default: `604800`, or seven days).
 
 5. Start the app:
 
@@ -65,7 +71,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite (usually http://localhost:5173). During local development, Vite proxies `/products` and `/stock` requests to `http://127.0.0.1:5000`. To use another API origin, set `VITE_API_BASE_URL` in `frontend/.env.local`.
+Open the local URL printed by Vite (usually http://localhost:5173). During local development, Vite proxies `/auth`, `/products`, and `/stock` requests to `http://127.0.0.1:5000`. To use another API origin, set `VITE_API_BASE_URL` in `frontend/.env.local`.
 
 ### Deploying the frontend to Netlify
 
@@ -94,6 +100,9 @@ A healthy response returns JSON with a status of ok.
 - backend/app.py — creates the Flask app, registers blueprints, and initializes the database
 - backend/config.py — loads environment variables and configures the SQLAlchemy connection
 - backend/database/db.py — creates the shared SQLAlchemy instance
+- backend/models/user.py — defines user accounts and password hashing
+- backend/controllers/auth_controller.py — handles sign-up, sign-in, and current-user authentication
+- backend/routes/auth_routes.py — exposes authentication endpoints
 - backend/models/product.py — defines the Product model
 - backend/models/stock_log.py — defines the StockLog model and stock history fields
 - backend/services/product_service.py — handles product CRUD logic
@@ -109,6 +118,28 @@ A healthy response returns JSON with a status of ok.
 ### Health check
 
 - GET /
+
+### Authentication
+
+- POST /auth/signup — create an account; returns a user profile and bearer token
+- POST /auth/signin — authenticate with an existing account; returns a user profile and bearer token
+- GET /auth/me — return the profile for the bearer token
+
+Example sign-up request:
+
+```json
+{
+  "name": "Alex Morgan",
+  "email": "alex@example.com",
+  "password": "use-a-strong-password"
+}
+```
+
+Sign-in accepts `email` and `password`. Include the returned token on all product and stock requests:
+
+```http
+Authorization: Bearer <token>
+```
 
 ### Products
 
@@ -189,13 +220,14 @@ Create a product:
 ```powershell
 curl -X POST http://127.0.0.1:5000/products/ \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d "{\"name\":\"Widget\",\"description\":\"Basic widget\",\"price\":9.99,\"stock_level\":10}"
 ```
 
 List products:
 
 ```powershell
-curl http://127.0.0.1:5000/products/
+curl http://127.0.0.1:5000/products/ -H "Authorization: Bearer <token>"
 ```
 
 Increase stock:
@@ -203,6 +235,7 @@ Increase stock:
 ```powershell
 curl -X POST http://127.0.0.1:5000/stock/increase/1 \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d "{\"amount\":5,\"reason\":\"restock\"}"
 ```
 
@@ -211,13 +244,14 @@ Decrease stock:
 ```powershell
 curl -X POST http://127.0.0.1:5000/stock/decrease/1 \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d "{\"amount\":2,\"reason\":\"sale\"}"
 ```
 
 View stock history:
 
 ```powershell
-curl http://127.0.0.1:5000/products/1/stock-history
+curl http://127.0.0.1:5000/products/1/stock-history -H "Authorization: Bearer <token>"
 ```
 
 ## Concurrency handling

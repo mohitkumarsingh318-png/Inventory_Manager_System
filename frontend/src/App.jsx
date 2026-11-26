@@ -4,8 +4,13 @@ import './App.css'
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 async function request(path, options = {}) {
+  const token = localStorage.getItem('stockroom_token')
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
     ...options,
   })
   const isJson = response.headers.get('content-type')?.includes('application/json')
@@ -28,6 +33,7 @@ function Icon({ name, size = 18 }) {
     box: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 8 9 5 9-5" /><path d="M3 8v9l9 5 9-5V8" /><path d="M12 13v9" /></>,
     clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
     plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
+    minus: <><path d="M5 12h14" /></>,
     search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
     arrow: <><path d="M7 17 17 7" /><path d="M7 7h10v10" /></>,
     alert: <><path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></>,
@@ -35,6 +41,9 @@ function Icon({ name, size = 18 }) {
     edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></>,
     trash: <><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="m19 6-1 14H6L5 6" /><path d="M10 11v5M14 11v5" /></>,
     menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
+    logout: <><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M14 3h6a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-6" /></>,
+    eye: <><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></>,
+    eyeOff: <><path d="m3 3 18 18" /><path d="M10.6 6.2A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8" /><path d="M6.2 6.2C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6c1 0 1.9-.2 2.7-.4" /></>,
   }
 
   return (
@@ -70,6 +79,12 @@ function StockStatus({ quantity }) {
 }
 
 function App() {
+  const [authView, setAuthView] = useState('signin')
+  const [authChecking, setAuthChecking] = useState(true)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [authSubmitting, setAuthSubmitting] = useState(false)
+  const [authError, setAuthError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -101,6 +116,23 @@ function App() {
   }, [loadProducts])
 
   useEffect(() => {
+    const token = localStorage.getItem('stockroom_token')
+    if (!token) {
+      setAuthChecking(false)
+      return
+    }
+
+    request('/auth/me')
+      .then((data) => setCurrentUser(data.user))
+      .catch(() => {
+        localStorage.removeItem('stockroom_token')
+        setCurrentUser(null)
+      })
+      .finally(() => setAuthChecking(false))
+  }, [])
+
+  useEffect(() => {
+    if (!currentUser) return undefined
     let active = true
     request('/products/')
       .then((data) => {
@@ -114,7 +146,7 @@ function App() {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [])
+  }, [currentUser])
 
   const stats = useMemo(() => ({
     count: products.length,
@@ -212,6 +244,41 @@ function App() {
     }
   }
 
+  async function submitAuth(event) {
+    event.preventDefault()
+    setAuthSubmitting(true)
+    setAuthError('')
+    const formData = new FormData(event.currentTarget)
+    const payload = {
+      email: formData.get('email').trim(),
+      password: formData.get('password'),
+    }
+    if (authView === 'signup') payload.name = formData.get('name').trim()
+
+    try {
+      const data = await request(authView === 'signup' ? '/auth/signup' : '/auth/signin', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      localStorage.setItem('stockroom_token', data.token)
+      setCurrentUser(data.user)
+      setShowPassword(false)
+      setAuthError('')
+    } catch (requestError) {
+      setAuthError(requestError.message)
+    } finally {
+      setAuthSubmitting(false)
+    }
+  }
+
+  function signOut() {
+    localStorage.removeItem('stockroom_token')
+    setCurrentUser(null)
+    setProducts([])
+    setError('')
+    setNotice('')
+  }
+
   function navigate(view) {
     setActiveView(view)
     setMobileNavOpen(false)
@@ -221,13 +288,100 @@ function App() {
   const isProductsView = activeView === 'products'
   const shownProducts = isProductsView ? visibleProducts : products.slice(0, 5)
 
+  if (authChecking) {
+    return <div className="auth-loading"><span className="auth-loader" /><span>Loading Rupesh's Stockroom...</span></div>
+  }
+
+  if (!currentUser) {
+    const isSignUp = authView === 'signup'
+    return (
+      <main className="auth-page">
+        <section className="auth-visual" aria-label="Inventory workspace preview">
+          <a className="auth-brand" href="#" onClick={(event) => event.preventDefault()}>
+            <span className="brand-mark"><Icon name="box" size={22} /></span>
+            <span>Rupesh's Stockroom<span className="brand-period">.</span></span>
+          </a>
+          <div className="auth-visual-copy">
+            <p className="auth-kicker">SMART INVENTORY</p>
+            <h2>Everything in your stockroom, in view.</h2>
+            <p>Track products, monitor movements, and stay ahead of low stock from one calm workspace.</p>
+          </div>
+          <div className="auth-preview" aria-hidden="true">
+            <div className="preview-header">
+              <span className="preview-mark"><Icon name="box" size={14} /></span>
+              <strong>Inventory overview</strong>
+              <span className="preview-workspace">Workspace</span>
+              <span className="preview-avatar">A</span>
+            </div>
+            <div className="preview-content">
+              <div className="preview-greeting">
+                <span>YOUR WORKSPACE</span>
+                <strong>Good morning, Alex</strong>
+                <small>Here’s what’s happening with your stock today.</small>
+              </div>
+              <div className="preview-stats">
+                <article><span>Total products</span><strong>248</strong><small>↗ 12% this month</small></article>
+                <article><span>Units in stock</span><strong>1,842</strong><small>Across your catalog</small></article>
+                <article><span>Stock value</span><strong>$24.6k</strong><small>Current inventory</small></article>
+              </div>
+              <div className="preview-activity">
+                <div className="preview-activity-heading"><strong>Recent products</strong><span>View all</span></div>
+                <div className="preview-row"><i className="preview-product purple" /><span><b>Wireless headphones</b><small>Electronics</small></span><strong>128 units</strong></div>
+                <div className="preview-row"><i className="preview-product green" /><span><b>Everyday bottle</b><small>Accessories</small></span><strong>64 units</strong></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="auth-panel">
+          <div className="auth-card">
+            <p className="eyebrow">{isSignUp ? 'CREATE ACCOUNT' : 'WELCOME BACK'}</p>
+            <h1>{isSignUp ? 'Create your account' : "Sign in to Rupesh's Stockroom"}</h1>
+            <p className="auth-subtitle">{isSignUp ? 'Start managing your inventory today.' : 'Enter your details to access your workspace.'}</p>
+
+            {authError && <div className="auth-error" role="alert"><Icon name="alert" size={16} /><span>{authError}</span></div>}
+
+            <form className="auth-form" onSubmit={submitAuth}>
+              {isSignUp && (
+                <label>Full name
+                  <input name="name" type="text" autoComplete="name" required maxLength="128" placeholder="Alex Morgan" />
+                </label>
+              )}
+              <label>Email address
+                <input name="email" type="email" autoComplete="email" required placeholder="you@company.com" />
+              </label>
+              <label>Password
+                <div className="auth-password">
+                  <input name="password" type={showPassword ? 'text' : 'password'} autoComplete={isSignUp ? 'new-password' : 'current-password'} required minLength={isSignUp ? 8 : 1} placeholder={isSignUp ? 'At least 8 characters' : 'Enter your password'} />
+                  <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((value) => !value)}><Icon name={showPassword ? 'eyeOff' : 'eye'} size={17} /></button>
+                </div>
+              </label>
+              {!isSignUp && <div className="auth-options"><label className="remember-option"><input type="checkbox" /> Remember me</label></div>}
+              <button className="button auth-submit" type="submit" disabled={authSubmitting}>
+                {authSubmitting ? 'Please wait...' : isSignUp ? 'Create account' : 'Sign in'}
+              </button>
+            </form>
+
+            <p className="auth-switch">
+              {isSignUp ? 'Already have an account?' : "New to Rupesh's Stockroom?"}
+              <button type="button" onClick={() => { setAuthView(isSignUp ? 'signin' : 'signup'); setAuthError(''); setShowPassword(false) }}>
+                {isSignUp ? 'Sign in' : 'Create account'}
+              </button>
+            </p>
+            <p className="auth-security"><span aria-hidden="true">✓</span> Your workspace is protected with secure sign-in</p>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <div className="app-shell">
       {mobileNavOpen && <button className="nav-scrim" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
       <aside className={`sidebar ${mobileNavOpen ? 'sidebar-open' : ''}`}>
         <a className="brand" href="#" onClick={(event) => { event.preventDefault(); navigate('overview') }}>
           <span className="brand-mark"><Icon name="box" size={21} /></span>
-          <span>Stockroom<span className="brand-period">.</span></span>
+          <span>Rupesh's Stockroom<span className="brand-period">.</span></span>
         </a>
         <p className="nav-label">WORKSPACE</p>
         <nav className="main-nav" aria-label="Main navigation">
@@ -251,7 +405,11 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><Icon name="menu" /></button>
           <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-separator">/</span><strong>{activeView === 'overview' ? 'Overview' : activeView === 'products' ? 'Products' : 'Stock history'}</strong></div>
-          <div className="topbar-right"><span className="avatar" aria-label="Stockroom workspace">S</span></div>
+          <div className="topbar-right">
+            <span className="user-name">{currentUser.name}</span>
+            <span className="avatar" aria-label={`${currentUser.name} account`}>{currentUser.name.trim().charAt(0).toUpperCase()}</span>
+            <button className="signout-button" type="button" onClick={signOut} title="Sign out" aria-label="Sign out"><Icon name="logout" size={17} /></button>
+          </div>
         </header>
 
         <section className="page-content">
@@ -287,7 +445,7 @@ function App() {
           <section className="panel product-panel">
             <div className="panel-header">
               <div><h2>{activeView === 'history' ? 'Recent movements' : isProductsView ? 'All products' : 'Recently added'}</h2><p>{activeView === 'history' ? 'Choose a product to view its stock activity.' : isProductsView ? `${visibleProducts.length} products in your catalog` : 'Your latest inventory items'}</p></div>
-              {activeView !== 'history' && <button className="button button-secondary" onClick={() => navigate('products')}>{isProductsView ? 'Refresh list' : 'View all products'} {!isProductsView && <span aria-hidden="true">→</span>}</button>}
+              {activeView !== 'history' && <button className="button button-secondary" onClick={() => isProductsView ? refreshProducts() : navigate('products')}>{isProductsView ? 'Refresh list' : 'View all products'} {!isProductsView && <span aria-hidden="true">→</span>}</button>}
             </div>
             <div className="table-toolbar">
               <label className="search-field"><Icon name="search" size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products..." aria-label="Search products" /></label>
@@ -309,6 +467,7 @@ function App() {
                           <td><div className="row-actions">
                             {activeView === 'history' ? <button className="icon-button" title="View stock history" aria-label={`View ${product.name} stock history`} onClick={() => openHistory(product)}><Icon name="clock" size={16} /></button> : <>
                               <button className="icon-button" title="Add stock" aria-label={`Add stock to ${product.name}`} onClick={() => setModal({ type: 'increase', product })}><Icon name="plus" size={16} /></button>
+                              <button className="icon-button" title="Remove stock" aria-label={`Remove stock from ${product.name}`} onClick={() => setModal({ type: 'decrease', product })}><Icon name="minus" size={16} /></button>
                               <button className="icon-button" title="View history" aria-label={`View ${product.name} stock history`} onClick={() => openHistory(product)}><Icon name="clock" size={16} /></button>
                               <button className="icon-button" title="Edit product" aria-label={`Edit ${product.name}`} onClick={() => setModal({ type: 'edit', product })}><Icon name="edit" size={16} /></button>
                               <button className="icon-button icon-danger" title="Delete product" aria-label={`Delete ${product.name}`} onClick={() => deleteProduct(product)}><Icon name="trash" size={16} /></button>
