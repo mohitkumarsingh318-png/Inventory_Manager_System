@@ -258,6 +258,44 @@ curl http://127.0.0.1:5000/products/1/stock-history -H "Authorization: Bearer <t
 
 Stock updates are processed with a row-level database lock on the relevant product record. If a request would push stock below zero, the update is rejected. The concurrency example in backend/tests/concurrency.py shows this behavior under repeated requests.
 
+### Running the concurrency test
+
+Start the backend first, then sign in to obtain a bearer token:
+
+```powershell
+curl -X POST http://127.0.0.1:5000/auth/signin `
+  -H "Content-Type: application/json" `
+  -d "{\"email\":\"alex@example.com\",\"password\":\"use-a-strong-password\"}"
+```
+
+Copy the `token` value from the JSON response. Then run the test in a backend terminal:
+
+```powershell
+cd backend
+python tests/concurrency.py --token "<token>"
+```
+
+The test also accepts custom values:
+
+```powershell
+python tests/concurrency.py --token "<token>" --initial-stock 20 --threads 30 --decrement 1
+```
+
+You can avoid repeating the token on the command line by setting it in the environment:
+
+```powershell
+$env:INVENTORY_API_TOKEN = "<token>"
+python tests/concurrency.py
+```
+
+For a deployed API, set `INVENTORY_API_BASE_URL` or pass `--base`:
+
+```powershell
+python tests/concurrency.py --base "https://your-api.example.com" --token "<token>"
+```
+
+Inventory endpoints return `401 Authentication required` unless a valid bearer token is included. Do not run the concurrency script without a token.
+
 ## Architecture summary
 
 The project follows a lightweight layered architecture:
